@@ -25,27 +25,3 @@ import (
 
 	linodev1alpha1 "github.com/displague/stack-linode/api/v1alpha1"
 )
-
-// ObjectStorageReconciler reconciles a ObjectStorage object
-type ObjectStorageReconciler struct {
-	client.Client
-	Log logr.Logger
-}
-
-// +kubebuilder:rbac:groups=linode.stack.crossplane.io,resources=objectstorages,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=linode.stack.crossplane.io,resources=objectstorages/status,verbs=get;update;patch
-
-func (r *ObjectStorageReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("objectstorage", req.NamespacedName)
-
-	// your logic here
-
-	return ctrl.Result{}, nil
-}
-
-func (r *ObjectStorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&linodev1alpha1.ObjectStorage{}).
-		Complete(r)
-}
