@@ -20,6 +20,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	linodego "github.com/linode/linodego"
+
 	runtimev1alpha1 "github.com/crossplaneio/crossplane-runtime/apis/core/v1alpha1"
 )
 
@@ -32,6 +34,7 @@ type ObjectStorageSpec struct {
 
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	linodego.ObjectStorageKeyCreateOptions `json:",inline"`
 }
 
 // ObjectStorageStatus defines the observed state of ObjectStorage
@@ -40,6 +43,8 @@ type ObjectStorageStatus struct {
 
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	linodego.ObjectStorageKey `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
