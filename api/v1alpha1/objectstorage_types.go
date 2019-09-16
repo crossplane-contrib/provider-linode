@@ -17,7 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	runtimev1alpha1 "github.com/crossplaneio/crossplane-runtime/apis/core/v1alpha1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -25,12 +28,16 @@ import (
 
 // ObjectStorageSpec defines the desired state of ObjectStorage
 type ObjectStorageSpec struct {
+	runtimev1alpha1.ResourceSpec `json:",inline"`
+
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
 // ObjectStorageStatus defines the observed state of ObjectStorage
 type ObjectStorageStatus struct {
+	runtimev1alpha1.ResourceStatus `json:",inline"`
+
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -44,6 +51,61 @@ type ObjectStorage struct {
 
 	Spec   ObjectStorageSpec   `json:"spec,omitempty"`
 	Status ObjectStorageStatus `json:"status,omitempty"`
+}
+
+// SetBindingPhase of this ObjectStorage.
+func (a *ObjectStorage) SetBindingPhase(p runtimev1alpha1.BindingPhase) {
+	a.Status.SetBindingPhase(p)
+}
+
+// GetBindingPhase of this ObjectStorage.
+func (a *ObjectStorage) GetBindingPhase() runtimev1alpha1.BindingPhase {
+	return a.Status.GetBindingPhase()
+}
+
+// SetConditions of this ObjectStorage.
+func (a *ObjectStorage) SetConditions(c ...runtimev1alpha1.Condition) {
+	a.Status.SetConditions(c...)
+}
+
+// SetClaimReference of this ObjectStorage.
+func (a *ObjectStorage) SetClaimReference(r *corev1.ObjectReference) {
+	a.Spec.ClaimReference = r
+}
+
+// GetClaimReference of this ObjectStorage.
+func (a *ObjectStorage) GetClaimReference() *corev1.ObjectReference {
+	return a.Spec.ClaimReference
+}
+
+// SetClassReference of this ObjectStorage.
+func (a *ObjectStorage) SetClassReference(r *corev1.ObjectReference) {
+	a.Spec.ClassReference = r
+}
+
+// GetClassReference of this ObjectStorage.
+func (a *ObjectStorage) GetClassReference() *corev1.ObjectReference {
+	return a.Spec.ClassReference
+}
+
+// SetWriteConnectionSecretToReference of this ObjectStorage.
+func (a *ObjectStorage) SetWriteConnectionSecretToReference(r corev1.LocalObjectReference) {
+	a.Spec.WriteConnectionSecretToReference = r
+}
+
+// GetWriteConnectionSecretToReference of this ObjectStorage.
+func (a *ObjectStorage) GetWriteConnectionSecretToReference() corev1.LocalObjectReference {
+	return a.Spec.WriteConnectionSecretToReference
+}
+
+// GetReclaimPolicy of this ObjectStorage.
+func (a *ObjectStorage) GetReclaimPolicy() runtimev1alpha1.ReclaimPolicy {
+	return a.Spec.ReclaimPolicy
+}
+
+// SetReclaimPolicy of this ObjectStorage.
+func (a *ObjectStorage) SetReclaimPolicy(p runtimev1alpha1.ReclaimPolicy) {
+	a.Spec.ReclaimPolicy = p
 }
 
 // +kubebuilder:object:root=true
