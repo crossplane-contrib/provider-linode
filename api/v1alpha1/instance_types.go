@@ -26,16 +26,16 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// ObjectStorageSpec defines the desired state of ObjectStorage
-type ObjectStorageSpec struct {
+// InstanceSpec defines the desired state of Instance
+type InstanceSpec struct {
 	runtimev1alpha1.ResourceSpec `json:",inline"`
 
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-// ObjectStorageStatus defines the observed state of ObjectStorage
-type ObjectStorageStatus struct {
+// InstanceStatus defines the observed state of Instance
+type InstanceStatus struct {
 	runtimev1alpha1.ResourceStatus `json:",inline"`
 
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
@@ -44,79 +44,79 @@ type ObjectStorageStatus struct {
 
 // +kubebuilder:object:root=true
 
-// ObjectStorage is the Schema for the objectstorages API
-type ObjectStorage struct {
+// Instance is the Schema for the instances API
+type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ObjectStorageSpec   `json:"spec,omitempty"`
-	Status ObjectStorageStatus `json:"status,omitempty"`
+	Spec   InstanceSpec   `json:"spec,omitempty"`
+	Status InstanceStatus `json:"status,omitempty"`
 }
 
-// SetBindingPhase of this ObjectStorage.
-func (a *ObjectStorage) SetBindingPhase(p runtimev1alpha1.BindingPhase) {
+// SetBindingPhase of this Instance.
+func (a *Instance) SetBindingPhase(p runtimev1alpha1.BindingPhase) {
 	a.Status.SetBindingPhase(p)
 }
 
-// GetBindingPhase of this ObjectStorage.
-func (a *ObjectStorage) GetBindingPhase() runtimev1alpha1.BindingPhase {
+// GetBindingPhase of this Instance.
+func (a *Instance) GetBindingPhase() runtimev1alpha1.BindingPhase {
 	return a.Status.GetBindingPhase()
 }
 
-// SetConditions of this ObjectStorage.
-func (a *ObjectStorage) SetConditions(c ...runtimev1alpha1.Condition) {
+// SetConditions of this Instance.
+func (a *Instance) SetConditions(c ...runtimev1alpha1.Condition) {
 	a.Status.SetConditions(c...)
 }
 
-// SetClaimReference of this ObjectStorage.
-func (a *ObjectStorage) SetClaimReference(r *corev1.ObjectReference) {
+// SetClaimReference of this Instance.
+func (a *Instance) SetClaimReference(r *corev1.ObjectReference) {
 	a.Spec.ClaimReference = r
 }
 
-// GetClaimReference of this ObjectStorage.
-func (a *ObjectStorage) GetClaimReference() *corev1.ObjectReference {
+// GetClaimReference of this Instance.
+func (a *Instance) GetClaimReference() *corev1.ObjectReference {
 	return a.Spec.ClaimReference
 }
 
-// SetClassReference of this ObjectStorage.
-func (a *ObjectStorage) SetClassReference(r *corev1.ObjectReference) {
+// SetClassReference of this Instance.
+func (a *Instance) SetClassReference(r *corev1.ObjectReference) {
 	a.Spec.ClassReference = r
 }
 
-// GetClassReference of this ObjectStorage.
-func (a *ObjectStorage) GetClassReference() *corev1.ObjectReference {
+// GetClassReference of this Instance.
+func (a *Instance) GetClassReference() *corev1.ObjectReference {
 	return a.Spec.ClassReference
 }
 
-// SetWriteConnectionSecretToReference of this ObjectStorage.
-func (a *ObjectStorage) SetWriteConnectionSecretToReference(r corev1.LocalObjectReference) {
+// SetWriteConnectionSecretToReference of this Instance.
+func (a *Instance) SetWriteConnectionSecretToReference(r corev1.LocalObjectReference) {
 	a.Spec.WriteConnectionSecretToReference = r
 }
 
-// GetWriteConnectionSecretToReference of this ObjectStorage.
-func (a *ObjectStorage) GetWriteConnectionSecretToReference() corev1.LocalObjectReference {
+// GetWriteConnectionSecretToReference of this Instance.
+func (a *Instance) GetWriteConnectionSecretToReference() corev1.LocalObjectReference {
 	return a.Spec.WriteConnectionSecretToReference
 }
 
-// GetReclaimPolicy of this ObjectStorage.
-func (a *ObjectStorage) GetReclaimPolicy() runtimev1alpha1.ReclaimPolicy {
+// GetReclaimPolicy of this Instance.
+func (a *Instance) GetReclaimPolicy() runtimev1alpha1.ReclaimPolicy {
 	return a.Spec.ReclaimPolicy
 }
 
-// SetReclaimPolicy of this ObjectStorage.
-func (a *ObjectStorage) SetReclaimPolicy(p runtimev1alpha1.ReclaimPolicy) {
+// SetReclaimPolicy of this Instance.
+func (a *Instance) SetReclaimPolicy(p runtimev1alpha1.ReclaimPolicy) {
 	a.Spec.ReclaimPolicy = p
 }
 
 // +kubebuilder:object:root=true
 
-// ObjectStorageList contains a list of ObjectStorage
-type ObjectStorageList struct {
+// InstanceList contains a list of Instance
+type InstanceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ObjectStorage `json:"items"`
+	Items           []Instance `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&ObjectStorage{}, &ObjectStorageList{})
+	SchemeBuilder.Register(&Instance{}, &InstanceList{})
 }

@@ -53,12 +53,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&controllers.ObjectStorageReconciler{
+	err = (&controllers.InstanceReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("ObjectStorage"),
+		Log:    ctrl.Log.WithName("controllers").WithName("Instance"),
 	}).SetupWithManager(mgr)
 	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ObjectStorage")
+		setupLog.Error(err, "unable to create controller", "controller", "Instance")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

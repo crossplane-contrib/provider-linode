@@ -4,7 +4,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     certmanager.k8s.io/inject-ca-from: $(NAMESPACE)/$(CERTIFICATENAME)
-  name: objectstorages.linode.stack.crossplane.io
+  name: instances.linode.stack.crossplane.io
 spec:
   conversion:
     strategy: Webhook
@@ -15,4 +15,4 @@ spec:
       service:
         namespace: $(NAMESPACE)
         name: webhook-service
-        path: /convert-objectstorage
+        path: /convert-instance
