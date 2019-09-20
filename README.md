@@ -7,4 +7,8 @@ kubebuilder create api --group linode --version v1alpha1 --kind Instance
 add "github.com/displague/stack-linode/controllers" to imports
 https://github.com/kubernetes-sigs/kubebuilder/issues/742
 
+remove kubebuilder created reconciler
+add your client class
+extend type for crossplane runtime use
+implement linode instance controller
 

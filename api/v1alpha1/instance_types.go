@@ -17,8 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"net"
+	"reflect"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	runtimev1alpha1 "github.com/crossplaneio/crossplane-runtime/apis/core/v1alpha1"
 )
@@ -26,12 +30,31 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+const (
+	Group   = "compute.linode.crossplane.io"
+	Version = "v1alpha1"
+)
+
+var (
+
+	// SchemeGroupVersion is group version used to register these objects
+	SchemeGroupVersion = schema.GroupVersion{Group: Group, Version: Version}
+
+	InstanceKind             = reflect.TypeOf(Instance{}).Name()
+	InstanceKindAPIVersion   = InstanceKind + "." + SchemeGroupVersion.String()
+	InstanceGroupVersionKind = SchemeGroupVersion.WithKind(InstanceKind)
+)
+
+type InstanceParameters struct {
+	// +optional
+	Label string `json:",omitempty"`
+}
+
 // InstanceSpec defines the desired state of Instance
 type InstanceSpec struct {
 	runtimev1alpha1.ResourceSpec `json:",inline"`
 
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	InstanceParameters string `json:",inline"`
 }
 
 // InstanceStatus defines the observed state of Instance
@@ -40,6 +63,14 @@ type InstanceStatus struct {
 
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	ID     int      `json:"id"`
+	IPv4   []net.IP `json:"ipv4"`
+	IPv6   string   `json:"ipv6"`
+	Label  string   `json:"label"`
+	Status string   `json:"status"`
+	Region string   `json:"region"`
+	Type   string   `json:"type"`
 }
 
 // +kubebuilder:object:root=true
@@ -78,14 +109,14 @@ func (a *Instance) GetClaimReference() *corev1.ObjectReference {
 	return a.Spec.ClaimReference
 }
 
-// SetClassReference of this Instance.
-func (a *Instance) SetClassReference(r *corev1.ObjectReference) {
-	a.Spec.ClassReference = r
+// SetNonPortableClassReference of this Instance.
+func (i *Instance) SetNonPortableClassReference(r *corev1.ObjectReference) {
+	i.Spec.NonPortableClassReference = r
 }
 
-// GetClassReference of this Instance.
-func (a *Instance) GetClassReference() *corev1.ObjectReference {
-	return a.Spec.ClassReference
+// GetNonPortableClassReference of this Instance.
+func (i *Instance) GetNonPortableClassReference() *corev1.ObjectReference {
+	return i.Spec.NonPortableClassReference
 }
 
 // SetWriteConnectionSecretToReference of this Instance.
