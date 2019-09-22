@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"reflect"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -26,11 +28,19 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+var (
+	InstanceKind             = reflect.TypeOf(Instance{}).Name()
+	InstanceKindAPIVersion   = InstanceKind + "." + GroupVersion.String()
+	InstanceGroupVersionKind = GroupVersion.WithKind(InstanceKind)
+)
+
 // InstanceSpec defines the desired state of Instance
 type InstanceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	runtimev1alpha1.ResourceSpec `json:",inline"`
+
+	Label string `json:"label,omitempty"`
 }
 
 // InstanceStatus defines the observed state of Instance
@@ -38,6 +48,9 @@ type InstanceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	runtimev1alpha1.ResourceStatus `json:",inline"`
+
+	Id    int    `json:"id"`
+	Label string `json:"label"`
 }
 
 // +kubebuilder:object:root=true
