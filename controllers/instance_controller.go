@@ -99,8 +99,21 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (resource.E
 	}
 
 	if m.Status.Id == 0 {
+		return resource.ExternalObservation{}, nil
+	}
+
+	instance, err := e.client.GetInstance(ctx, m.Status.Id)
+
+	if err != nil {
+		if e, ok := err.(*linodego.Error); ok && e.Code == 404 {
+			return resource.ExternalObservation{}, nil
+		}
+	}
+
+	if instance.Label == m.Spec.Label {
 		return resource.ExternalObservation{
-			ResourceExists: false,
+			ResourceExists:   true,
+			ResourceUpToDate: true,
 		}, nil
 	}
 
@@ -123,6 +136,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (resource.Ex
 	}
 
 	m.Status.Id = instance.ID
+	m.Status.Label = instance.Label
 
 	return resource.ExternalCreation{}, nil
 }
