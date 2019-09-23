@@ -17,8 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	runtimev1alpha1 "github.com/crossplaneio/crossplane-runtime/apis/core/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	core "k8s.io/api/core/v1"
 
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,7 +60,13 @@ var _ = Describe("Instance", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "default",
-				}}
+				},
+				Spec: InstanceSpec{
+					ResourceSpec: runtimev1alpha1.ResourceSpec{
+						ProviderReference: &core.ObjectReference{},
+					},
+				},
+			}
 
 			By("creating an API obj")
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
