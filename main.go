@@ -20,11 +20,15 @@ import (
 	"flag"
 	"os"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
 	// +kubebuilder:scaffold:imports
+	linodev1alpha1 "github.com/displague/stack-linode/api/v1alpha1"
+	"github.com/displague/stack-linode/controllers"
 )
 
 var (
@@ -50,6 +54,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	setupLog.Info("Adding schemes")
+
+	// add all resources to the manager's runtime scheme
+
+	if err := addToScheme(mgr.GetScheme()); err != nil {
+		setupLog.Error(err, "Cannot add APIs to scheme")
+		os.Exit(1)
+	}
+	setupLog.Info("Adding controllers")
+
+	// Setup all Controllers
+	if err := controllerSetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Cannot add controllers to manager")
+		os.Exit(1)
+	}
+
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")
@@ -57,4 +77,25 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func controllerSetupWithManager(mgr manager.Manager) error {
+	if err := (&controllers.InstanceController{}).SetupWithManager(mgr); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// addToScheme adds all resources to the runtime scheme.
+func addToScheme(scheme *runtime.Scheme) error {
+	if err := linodev1alpha1.AddToScheme(scheme); err != nil {
+		return err
+	}
+
+	if err := corev1.AddToScheme(scheme); err != nil {
+		return err
+	}
+
+	return nil
 }
