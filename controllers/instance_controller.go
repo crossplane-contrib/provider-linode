@@ -16,6 +16,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	linodego "github.com/linode/linodego"
@@ -29,19 +30,25 @@ import (
 	"github.com/crossplaneio/crossplane-runtime/pkg/meta"
 	"github.com/crossplaneio/crossplane-runtime/pkg/resource"
 
+	"github.com/displague/stack-linode/api/v1alpha1"
 	linodev1alpha1 "github.com/displague/stack-linode/api/v1alpha1"
 	"github.com/displague/stack-linode/clients"
 )
 
 const (
 	errNewClient      = "cannot create new Instance client"
-	errNotInstance    = ""
-	errInstanceCreate = ""
+	errNotInstance    = "managed resource is not an Instance"
+	errInstanceCreate = "cannot create Instance"
+	errInstanceDelete = "cannot delete Instance"
 )
 
 // InstanceController is responsible for adding the Instance
 // controller and its corresponding reconciler to the manager with any runtime configuration.
 type InstanceController struct{}
+
+var (
+	controllerLog = ctrl.Log.WithName("instance.controller")
+)
 
 // SetupWithManager creates a new Instance Controller and adds it to the
 // Manager with default RBAC. The Manager will set fields on the Controller and
@@ -98,11 +105,15 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (resource.E
 		return resource.ExternalObservation{}, errors.New(errNotInstance)
 	}
 
+	controllerLog.Info("Observe", "spec", m.Spec, "status", m.Status)
+
 	if m.Status.Id == 0 {
 		return resource.ExternalObservation{}, nil
 	}
 
 	instance, err := e.client.GetInstance(ctx, m.Status.Id)
+
+	controllerLog.Info("Observe", "instanceId", m.Status.Id, "err", err)
 
 	if err != nil {
 		if e, ok := err.(*linodego.Error); ok && e.Code == 404 {
@@ -110,7 +121,20 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (resource.E
 		}
 	}
 
-	if instance.Label == m.Spec.Label {
+	controllerLog.Info("Observe", "wantLabel", m.Spec.Label, "gotLabel", instance.Label)
+	switch m.Status.Status {
+	case string(linodego.InstanceRunning):
+		m.Status.SetConditions(runtimev1alpha1.Available())
+		resource.SetBindable(m)
+	case string(linodego.InstanceProvisioning):
+		m.Status.SetConditions(runtimev1alpha1.Creating())
+	}
+
+	m.Status.Id = instance.ID
+	m.Status.Label = instance.Label
+	m.Status.Status = string(instance.Status)
+
+	if m.Spec.Label == "" || instance.Label == m.Spec.Label {
 		return resource.ExternalObservation{
 			ResourceExists:   true,
 			ResourceUpToDate: true,
@@ -125,6 +149,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (resource.Ex
 	if !ok {
 		return resource.ExternalCreation{}, errors.New(errNotInstance)
 	}
+	controllerLog.Info("Create", "spec", m.Spec, "status", m.Status)
 
 	m.Status.SetConditions(runtimev1alpha1.Creating())
 
@@ -134,6 +159,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (resource.Ex
 	if err != nil {
 		return resource.ExternalCreation{}, errors.Wrap(err, errInstanceCreate)
 	}
+	m.Status.SetConditions(runtimev1alpha1.Available())
 
 	m.Status.Id = instance.ID
 	m.Status.Label = instance.Label
@@ -142,19 +168,30 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (resource.Ex
 }
 
 func (e *external) Update(ctx context.Context, mg resource.Managed) (resource.ExternalUpdate, error) {
-	// m, ok := mg.(*linodev1alpha1.Instance)
-	// if !ok {
-	// 	return resource.ExternalUpdate{}, errors.New(errNotInstance)
-	// }
+	m, ok := mg.(*v1alpha1.Instance)
+	if !ok {
+		return resource.ExternalUpdate{}, errors.New(errNotInstance)
+	}
+	controllerLog.Info("Update", "spec", m.Spec, "status", m.Status)
 
 	return resource.ExternalUpdate{}, nil
 }
 
 func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
-	// m, ok := mg.(*linodev1alpha1.Instance)
-	// if !ok {
-	// 	return errors.New(errNotInstance)
-	// }
+	m, ok := mg.(*v1alpha1.Instance)
+	if !ok {
+		return errors.New(errNotInstance)
+	}
+	controllerLog.Info("Delete", "spec", m.Spec, "status", m.Status)
 
-	return nil
+	m.SetConditions(runtimev1alpha1.Deleting())
+	err := e.client.DeleteInstance(ctx, m.Status.Id)
+
+	if err != nil {
+		if e, ok := err.(*linodego.Error); ok && e.Code == http.StatusNotFound {
+			return nil
+		}
+	}
+
+	return errors.Wrap(err, errInstanceDelete)
 }
