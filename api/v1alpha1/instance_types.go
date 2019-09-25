@@ -54,6 +54,7 @@ type InstanceStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // Instance is the Schema for the instances API
 type Instance struct {
