@@ -49,8 +49,9 @@ type InstanceStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	runtimev1alpha1.ResourceStatus `json:",inline"`
 
-	Id    int    `json:"id"`
-	Label string `json:"label"`
+	Id     int    `json:"id"`
+	Label  string `json:"label"`
+	Status string `json:"status"`
 }
 
 // +kubebuilder:object:root=true

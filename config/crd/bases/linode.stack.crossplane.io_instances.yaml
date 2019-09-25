@@ -223,9 +223,12 @@ spec:
               type: integer
             label:
               type: string
+            status:
+              type: string
           required:
           - id
           - label
+          - status
           type: object
       type: object
   version: v1alpha1
