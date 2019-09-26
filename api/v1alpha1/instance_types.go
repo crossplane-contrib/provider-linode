@@ -36,12 +36,7 @@ var (
 
 // +kubebuilder:validation:Required
 
-// InstanceSpec defines the desired state of Instance
-type InstanceSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	runtimev1alpha1.ResourceSpec `json:",inline"`
-
+type InstanceParameters struct {
 	// Label is the unique name of this Linode Instance
 	// +optional
 	Label string `json:"label,omitempty"`
@@ -63,6 +58,14 @@ type InstanceSpec struct {
 	// Status is the current activity status of a Linode Instance
 	// +kubebuilder:validation:Enum=offline;running
 	Status string `json:"status,omitempty"`
+}
+
+// InstanceSpec defines the desired state of Instance
+type InstanceSpec struct {
+	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+	runtimev1alpha1.ResourceSpec `json:",inline"`
+	InstanceParameters           `json:",inline"`
 }
 
 // InstanceStatus defines the observed state of Instance
