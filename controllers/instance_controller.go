@@ -74,6 +74,9 @@ type connecter struct {
 	newClientFn func(credentials []byte) linodego.Client
 }
 
+// Connect to the supplied resource.Managed (presumed to be an
+// Instance) by using the Provider it references to create a new
+// Linode API client.
 func (c *connecter) Connect(ctx context.Context, mg resource.Managed) (resource.ExternalClient, error) {
 	m, ok := mg.(*linodev1alpha1.Instance)
 	if !ok {
@@ -105,6 +108,9 @@ func (c *connecter) Connect(ctx context.Context, mg resource.Managed) (resource.
 
 type external struct{ client linodego.Client }
 
+// Observe the existing external resource, if any. The resource.ManagedReconciler
+// calls Observe in order to determine whether an external resource needs to be
+// created, updated, or deleted.
 func (e *external) Observe(ctx context.Context, mg resource.Managed) (resource.ExternalObservation, error) {
 	m, ok := mg.(*linodev1alpha1.Instance)
 	if !ok {
@@ -165,6 +171,9 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (resource.E
 	}, nil
 }
 
+// Create a new external resource based on the specification of our managed
+// resource. resource.ManagedReconciler only calls Create if Observe reported
+// that the external resource did not exist.
 func (e *external) Create(ctx context.Context, mg resource.Managed) (resource.ExternalCreation, error) {
 	m, ok := mg.(*linodev1alpha1.Instance)
 	if !ok {
@@ -200,6 +209,9 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (resource.Ex
 	}, nil
 }
 
+// Update the existing external resource to match the specifications of our
+// managed resource. resource.ManagedReconciler only calls Update if Observe
+// reported that the external resource was not up to date.
 func (e *external) Update(ctx context.Context, mg resource.Managed) (resource.ExternalUpdate, error) {
 	var err error
 	m, ok := mg.(*linodev1alpha1.Instance)
@@ -223,6 +235,8 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (resource.Ex
 	return resource.ExternalUpdate{}, err
 }
 
+// Delete the external resource. resource.ManagedReconciler only calls Delete
+// when a managed resource with the 'Delete' reclaim policy has been deleted.
 func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	m, ok := mg.(*linodev1alpha1.Instance)
 	if !ok {
