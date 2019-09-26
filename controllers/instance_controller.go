@@ -15,11 +15,14 @@ package controllers
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
 
 	linodego "github.com/linode/linodego"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,7 +33,6 @@ import (
 	"github.com/crossplaneio/crossplane-runtime/pkg/meta"
 	"github.com/crossplaneio/crossplane-runtime/pkg/resource"
 
-	"github.com/displague/stack-linode/api/v1alpha1"
 	linodev1alpha1 "github.com/displague/stack-linode/api/v1alpha1"
 	"github.com/displague/stack-linode/clients"
 )
@@ -75,8 +77,12 @@ type connecter struct {
 func (c *connecter) Connect(ctx context.Context, mg resource.Managed) (resource.ExternalClient, error) {
 	m, ok := mg.(*linodev1alpha1.Instance)
 	if !ok {
-		return nil, errors.New(errNotInstance)
+		err := errors.New(errNotInstance)
+		controllerLog.Error(err, "Connect", "mg", mg)
+		return nil, err
 	}
+
+	controllerLog.Info("Connect", "spec", m.Spec, "status", m.Status)
 
 	p := &linodev1alpha1.Provider{}
 	n := meta.NamespacedNameOf(m.Spec.ProviderReference)
@@ -130,18 +136,33 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (resource.E
 		m.Status.SetConditions(runtimev1alpha1.Creating())
 	}
 
+	// Store observed values in Status
 	m.Status.Id = instance.ID
 	m.Status.Label = instance.Label
 	m.Status.Status = string(instance.Status)
+	m.Status.Region = instance.Region
+	m.Status.Type = instance.Type
+	m.Status.Image = instance.Image
+	m.Status.IPv4 = []string{}
+	for _, ip := range instance.IPv4 {
+		m.Status.IPv4 = append(m.Status.IPv4, ip.String())
+	}
+	m.Status.IPv6 = instance.IPv6
 
-	if m.Spec.Label == "" || instance.Label == m.Spec.Label {
-		return resource.ExternalObservation{
-			ResourceExists:   true,
-			ResourceUpToDate: true,
-		}, nil
+	// Compare observed (GetInstance()) to desired (spec)
+	upToDate := m.Spec.Label == "" || instance.Label == m.Spec.Label
+	isOnOrOff := map[string]bool{
+		string(linodego.InstanceRunning): true,
+		string(linodego.InstanceOffline): true,
 	}
 
-	return resource.ExternalObservation{ResourceExists: true}, nil
+	needsPowerToggle := (!isOnOrOff[string(instance.Status)] || m.Spec.Status != string(instance.Status))
+	upToDate = upToDate && !needsPowerToggle
+
+	return resource.ExternalObservation{
+		ResourceExists:   true,
+		ResourceUpToDate: upToDate,
+	}, nil
 }
 
 func (e *external) Create(ctx context.Context, mg resource.Managed) (resource.ExternalCreation, error) {
@@ -153,8 +174,16 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (resource.Ex
 
 	m.Status.SetConditions(runtimev1alpha1.Creating())
 
+	booted := m.Spec.Status == string(linodego.InstanceRunning)
+	rootPass, _ := createRandomRootPassword()
 	instance, err := e.client.CreateInstance(ctx, linodego.InstanceCreateOptions{
-		Label: m.Spec.Label,
+		Label:           m.Spec.Label,
+		Region:          m.Spec.Region,
+		Type:            m.Spec.Type,
+		AuthorizedUsers: m.Spec.AuthorizedUsers,
+		Image:           m.Spec.Image,
+		Booted:          &booted,
+		RootPass:        rootPass,
 	})
 	if err != nil {
 		return resource.ExternalCreation{}, errors.Wrap(err, errInstanceCreate)
@@ -162,23 +191,40 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (resource.Ex
 	m.Status.SetConditions(runtimev1alpha1.Available())
 
 	m.Status.Id = instance.ID
-	m.Status.Label = instance.Label
 
-	return resource.ExternalCreation{}, nil
+	return resource.ExternalCreation{
+		ConnectionDetails: resource.ConnectionDetails{
+			"rootPass": []byte(rootPass),
+			"ipv6":     []byte(instance.IPv6),
+		},
+	}, nil
 }
 
 func (e *external) Update(ctx context.Context, mg resource.Managed) (resource.ExternalUpdate, error) {
-	m, ok := mg.(*v1alpha1.Instance)
+	var err error
+	m, ok := mg.(*linodev1alpha1.Instance)
 	if !ok {
 		return resource.ExternalUpdate{}, errors.New(errNotInstance)
 	}
+
+	instance, errGetting := e.client.GetInstance(ctx, m.Status.Id)
+	if errGetting != nil {
+		return resource.ExternalUpdate{}, err
+	}
+
+	if m.Spec.Status == string(linodego.InstanceOffline) &&
+		instance.Status == linodego.InstanceRunning {
+		err = e.client.ShutdownInstance(ctx, m.Status.Id)
+	} else if instance.Status == linodego.InstanceOffline {
+		err = e.client.BootInstance(ctx, m.Status.Id, 0)
+	}
 	controllerLog.Info("Update", "spec", m.Spec, "status", m.Status)
 
-	return resource.ExternalUpdate{}, nil
+	return resource.ExternalUpdate{}, err
 }
 
 func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
-	m, ok := mg.(*v1alpha1.Instance)
+	m, ok := mg.(*linodev1alpha1.Instance)
 	if !ok {
 		return errors.New(errNotInstance)
 	}
@@ -194,4 +240,14 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	return errors.Wrap(err, errInstanceDelete)
+}
+
+func createRandomRootPassword() (string, error) {
+	rawRootPass := make([]byte, 50)
+	_, err := rand.Read(rawRootPass)
+	if err != nil {
+		return "", fmt.Errorf("Failed to generate random password")
+	}
+	rootPass := base64.StdEncoding.EncodeToString(rawRootPass)
+	return rootPass, nil
 }

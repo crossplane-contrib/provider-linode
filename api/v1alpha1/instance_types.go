@@ -34,13 +34,35 @@ var (
 	InstanceGroupVersionKind = GroupVersion.WithKind(InstanceKind)
 )
 
+// +kubebuilder:validation:Required
+
 // InstanceSpec defines the desired state of Instance
 type InstanceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	runtimev1alpha1.ResourceSpec `json:",inline"`
 
+	// Label is the unique name of this Linode Instance
+	// +optional
 	Label string `json:"label,omitempty"`
+
+	// Image is the disk image to be applied to the first instance disk
+	// +optional
+	Image string `json:"image,omitempty"`
+
+	// AuthorizedUsers are Linode user accounts whose SSH keys will be authorized to SSH into the instance
+	// +optional
+	AuthorizedUsers []string `json:"authorizedUsers,omitempty"`
+
+	// Region defines the geographic location of a Linode Instance
+	Region string `json:"region"`
+
+	// Type is the Linode Instance Type which represents the cost, processor, memory, transfer, and storage profile of the Instance
+	Type string `json:"type"`
+
+	// Status is the current activity status of a Linode Instance
+	// +kubebuilder:validation:Enum=offline;running
+	Status string `json:"status,omitempty"`
 }
 
 // InstanceStatus defines the observed state of Instance
@@ -49,20 +71,51 @@ type InstanceStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	runtimev1alpha1.ResourceStatus `json:",inline"`
 
-	Id     int    `json:"id"`
-	Label  string `json:"label"`
+	// Id is the unique immutable numeric identifier of a Linode Instance
+	// +optional
+	Id int `json:"id,omitempty"`
+
+	// Status is the current activity status of a Linode Instance
 	Status string `json:"status"`
+
+	// Label is the unique mutable name of a Linode Instance
+	Label string `json:"label"`
+
+	// Region defines the geographic location of a Linode Instance
+	Region string `json:"region"`
+
+	// Type is the Linode Instance Type which represents the cost, processor, memory, transfer, and storage profile of the Instance
+	Type string `json:"type"`
+
+	// IPv6 is the public IPv6 address of a Linode Instance
+	// +optional
+	IPv6 string `json:"ipv6,omitempty"`
+
+	// IPv4 is the list of IPv4 addresses associated with a Linode Instance
+	// +optional
+	IPv4 []string `json:"ipv4,omitempty"`
+
+	// Image is the image detected on a Linode Instance disk
+	// +optional
+	Image string `json:"image,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="LABEL",type="string",JSONPath=".status.label",description="Unique label associated with this Linode Instance",priority=1
+// +kubebuilder:printcolumn:name="REGION",type="string",JSONPath=".status.region",description="Region where this Linode Instance is deployed",priority=1
+// +kubebuilder:printcolumn:name="IPV4",type="string",JSONPath=".status.ipv4[0]",description="First IPv4 address of this Linode Instance",priority=1
+// +kubebuilder:printcolumn:name="STATUS",type="string",JSONPath=".status.status",description="Power status of this Linode Instance",priority=1
 
 // Instance is the Schema for the instances API
 type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   InstanceSpec   `json:"spec,omitempty"`
+	Spec InstanceSpec `json:"spec,omitempty"`
+
+	// +optional
 	Status InstanceStatus `json:"status,omitempty"`
 }
 
