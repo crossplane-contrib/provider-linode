@@ -38,6 +38,7 @@ var (
 
 func init() {
 
+	_ = linodev1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
