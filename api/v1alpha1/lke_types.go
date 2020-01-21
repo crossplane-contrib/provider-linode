@@ -20,7 +20,6 @@ import (
 	"reflect"
 
 	runtimev1alpha1 "github.com/crossplaneio/crossplane-runtime/apis/core/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -44,12 +43,10 @@ type LkeParameters struct {
 	Tags      []string         `json:"tags,omitempty"`
 }
 
-// LkeStatus defines the observed state of Lke
-type LkeStatus struct {
+// LkeObservation defines the observed state of Lke
+type LkeObservation struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	runtimev1alpha1.ResourceStatus `json:",inline"`
-
 	Id      int      `json:"id"`
 	Created string   `json:"created"`
 	Updated string   `json:"updated"`
@@ -62,12 +59,18 @@ type LkeStatus struct {
 	NodePools []LkeClusterPool `json:"node_pools"`
 }
 
+// LkeStatus defines the observed state of Lke
+type LkeStatus struct {
+	runtimev1alpha1.ResourceStatus `json:",inline"`
+	AtProvider                     LkeObservation `json:"atProvider"`
+}
+
 // LkeSpec defines the desired state of LKE
 type LkeSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	runtimev1alpha1.ResourceSpec `json:",inline"`
-	LkeParameters                `json:",inline"`
+	ForProvider                  LkeParameters `json:"forProvider"`
 }
 
 // +kubebuilder:object:root=true
@@ -82,76 +85,6 @@ type Lke struct {
 
 	// +optional
 	Status LkeStatus `json:"status,omitempty"`
-}
-
-// GetSpec returns the MySQL server's spec.
-func (s *Lke) GetSpec() *LkeSpec {
-	return &s.Spec
-}
-
-// GetStatus returns the MySQL server's status.
-func (s *Lke) GetStatus() *LkeStatus {
-	return &s.Status
-}
-
-// SetStatus sets the MySQL server's status.
-func (s *Lke) SetStatus(status *LkeStatus) {
-	s.Status = *status
-}
-
-// SetBindingPhase of this Lke.
-func (a *Lke) SetBindingPhase(p runtimev1alpha1.BindingPhase) {
-	a.Status.SetBindingPhase(p)
-}
-
-// GetBindingPhase of this Lke.
-func (a *Lke) GetBindingPhase() runtimev1alpha1.BindingPhase {
-	return a.Status.GetBindingPhase()
-}
-
-// SetConditions of this Lke.
-func (a *Lke) SetConditions(c ...runtimev1alpha1.Condition) {
-	a.Status.SetConditions(c...)
-}
-
-// SetClaimReference of this Lke.
-func (a *Lke) SetClaimReference(r *corev1.ObjectReference) {
-	a.Spec.ClaimReference = r
-}
-
-// GetClaimReference of this Lke.
-func (a *Lke) GetClaimReference() *corev1.ObjectReference {
-	return a.Spec.ClaimReference
-}
-
-// SetNonPortableClassReference of this Lke.
-func (a *Lke) SetNonPortableClassReference(r *corev1.ObjectReference) {
-	a.Spec.NonPortableClassReference = r
-}
-
-// GetNonPortableClassReference of this Lke.
-func (a *Lke) GetNonPortableClassReference() *corev1.ObjectReference {
-	return a.Spec.NonPortableClassReference
-}
-
-// SetWriteConnectionSecretToReference of this Lke.
-func (a *Lke) SetWriteConnectionSecretToReference(r corev1.LocalObjectReference) {
-	a.Spec.WriteConnectionSecretToReference = r
-}
-
-// GetWriteConnectionSecretToReference of this Lke.
-func (a *Lke) GetWriteConnectionSecretToReference() corev1.LocalObjectReference {
-	return a.Spec.WriteConnectionSecretToReference
-}
-
-// GetReclaimPolicy of this Lke.
-func (a *Lke) GetReclaimPolicy() runtimev1alpha1.ReclaimPolicy {
-	return a.Spec.ReclaimPolicy
-}
-
-// SetReclaimPolicy of this Lke.
-func (a *Lke) SetReclaimPolicy(p runtimev1alpha1.ReclaimPolicy) {
-	a.Spec.ReclaimPolicy = p
 }
 
 // LkeClusterPoolLinode

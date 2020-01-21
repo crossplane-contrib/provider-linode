@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"reflect"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	runtimev1alpha1 "github.com/crossplaneio/crossplane-runtime/apis/core/v1alpha1"
@@ -65,15 +64,11 @@ type InstanceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	runtimev1alpha1.ResourceSpec `json:",inline"`
-	InstanceParameters           `json:",inline"`
+	ForProvider                  InstanceParameters `json:"forProvider"`
 }
 
-// InstanceStatus defines the observed state of Instance
-type InstanceStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	runtimev1alpha1.ResourceStatus `json:",inline"`
-
+// InstanceObservation defines the observed state of Instance
+type InstanceObservation struct {
 	// Id is the unique immutable numeric identifier of a Linode Instance
 	// +optional
 	Id int `json:"id,omitempty"`
@@ -101,6 +96,15 @@ type InstanceStatus struct {
 	// Image is the image detected on a Linode Instance disk
 	// +optional
 	Image string `json:"image,omitempty"`
+}
+
+// InstanceStatus
+type InstanceStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+	runtimev1alpha1.ResourceStatus `json:",inline"`
+
+	AtProvider InstanceObservation `json:"atProvider"`
 }
 
 // +kubebuilder:object:root=true
@@ -147,6 +151,8 @@ func (a *Instance) GetBindingPhase() runtimev1alpha1.BindingPhase {
 	return a.Status.GetBindingPhase()
 }
 
+/*
+
 // SetConditions of this Instance.
 func (a *Instance) SetConditions(c ...runtimev1alpha1.Condition) {
 	a.Status.SetConditions(c...)
@@ -157,41 +163,24 @@ func (a *Instance) SetClaimReference(r *corev1.ObjectReference) {
 	a.Spec.ClaimReference = r
 }
 
+
 // GetClaimReference of this Instance.
 func (a *Instance) GetClaimReference() *corev1.ObjectReference {
 	return a.Spec.ClaimReference
 }
 
-// SetNonPortableClassReference of this Instance.
-func (a *Instance) SetNonPortableClassReference(r *corev1.ObjectReference) {
-	a.Spec.NonPortableClassReference = r
+// GetClaimPolicy of this Instance.
+func (a *Instance) GetClaimPolicy() runtimev1alpha1.ClaimPolicy {
+	return a.Spec.ClaimPolicy
 }
+**/
 
-// GetNonPortableClassReference of this Instance.
-func (a *Instance) GetNonPortableClassReference() *corev1.ObjectReference {
-	return a.Spec.NonPortableClassReference
-}
-
-// SetWriteConnectionSecretToReference of this Instance.
-func (a *Instance) SetWriteConnectionSecretToReference(r corev1.LocalObjectReference) {
-	a.Spec.WriteConnectionSecretToReference = r
-}
-
-// GetWriteConnectionSecretToReference of this Instance.
-func (a *Instance) GetWriteConnectionSecretToReference() corev1.LocalObjectReference {
-	return a.Spec.WriteConnectionSecretToReference
-}
-
-// GetReclaimPolicy of this Instance.
-func (a *Instance) GetReclaimPolicy() runtimev1alpha1.ReclaimPolicy {
-	return a.Spec.ReclaimPolicy
-}
-
+/**
 // SetReclaimPolicy of this Instance.
 func (a *Instance) SetReclaimPolicy(p runtimev1alpha1.ReclaimPolicy) {
 	a.Spec.ReclaimPolicy = p
 }
-
+*/
 // +kubebuilder:object:root=true
 
 // InstanceList contains a list of Instance

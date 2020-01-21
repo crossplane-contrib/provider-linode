@@ -31,6 +31,7 @@ import (
 
 	runtimev1alpha1 "github.com/crossplaneio/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplaneio/crossplane-runtime/pkg/meta"
+	"github.com/crossplaneio/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplaneio/crossplane-runtime/pkg/resource"
 
 	linodev1alpha1 "github.com/displague/stack-linode/api/v1alpha1"
@@ -56,10 +57,10 @@ var (
 // Manager with default RBAC. The Manager will set fields on the Controller and
 // start it when the Manager is Started.
 func (c *InstanceController) SetupWithManager(mgr ctrl.Manager) error {
-	r := resource.NewManagedReconciler(mgr,
+	r := managed.NewReconciler(mgr,
 		resource.ManagedKind(linodev1alpha1.InstanceGroupVersionKind),
-		resource.WithManagedConnectionPublishers(),
-		resource.WithExternalConnecter(&connecter{client: mgr.GetClient()}))
+		managed.WithConnectionPublishers(),
+		managed.WithExternalConnecter(&connecter{client: mgr.GetClient()}))
 
 	name := strings.ToLower(fmt.Sprintf("%s.%s", linodev1alpha1.InstanceKind, linodev1alpha1.Group))
 
@@ -77,7 +78,7 @@ type connecter struct {
 // Connect to the supplied resource.Managed (presumed to be an
 // Instance) by using the Provider it references to create a new
 // Linode API client.
-func (c *connecter) Connect(ctx context.Context, mg resource.Managed) (resource.ExternalClient, error) {
+func (c *connecter) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
 	m, ok := mg.(*linodev1alpha1.Instance)
 	if !ok {
 		err := errors.New(errNotInstance)
@@ -111,30 +112,30 @@ type external struct{ client linodego.Client }
 // Observe the existing external resource, if any. The resource.ManagedReconciler
 // calls Observe in order to determine whether an external resource needs to be
 // created, updated, or deleted.
-func (e *external) Observe(ctx context.Context, mg resource.Managed) (resource.ExternalObservation, error) {
+func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
 	m, ok := mg.(*linodev1alpha1.Instance)
 	if !ok {
-		return resource.ExternalObservation{}, errors.New(errNotInstance)
+		return managed.ExternalObservation{}, errors.New(errNotInstance)
 	}
 
 	controllerLog.Info("Observe", "spec", m.Spec, "status", m.Status)
 
-	if m.Status.Id == 0 {
-		return resource.ExternalObservation{}, nil
+	if m.Status.AtProvider.Id == 0 {
+		return managed.ExternalObservation{}, nil
 	}
 
-	instance, err := e.client.GetInstance(ctx, m.Status.Id)
+	instance, err := e.client.GetInstance(ctx, m.Status.AtProvider.Id)
 
-	controllerLog.Info("Observe", "instanceId", m.Status.Id, "err", err)
+	controllerLog.Info("Observe", "instanceId", m.Status.AtProvider.Id, "err", err)
 
 	if err != nil {
-		if e, ok := err.(*linodego.Error); ok && e.Code == 404 {
-			return resource.ExternalObservation{}, nil
+		if e, ok := err.(*linodego.Error); ok && e.Code == http.StatusNotFound {
+			return managed.ExternalObservation{}, nil
 		}
 	}
 
-	controllerLog.Info("Observe", "wantLabel", m.Spec.Label, "gotLabel", instance.Label)
-	switch m.Status.Status {
+	controllerLog.Info("Observe", "wantLabel", m.Spec.ForProvider.Label, "gotLabel", instance.Label)
+	switch m.Status.AtProvider.Status {
 	case string(linodego.InstanceRunning):
 		m.Status.SetConditions(runtimev1alpha1.Available())
 		resource.SetBindable(m)
@@ -143,29 +144,29 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (resource.E
 	}
 
 	// Store observed values in Status
-	m.Status.Id = instance.ID
-	m.Status.Label = instance.Label
-	m.Status.Status = string(instance.Status)
-	m.Status.Region = instance.Region
-	m.Status.Type = instance.Type
-	m.Status.Image = instance.Image
-	m.Status.IPv4 = []string{}
+	m.Status.AtProvider.Id = instance.ID
+	m.Status.AtProvider.Label = instance.Label
+	m.Status.AtProvider.Status = string(instance.Status)
+	m.Status.AtProvider.Region = instance.Region
+	m.Status.AtProvider.Type = instance.Type
+	m.Status.AtProvider.Image = instance.Image
+	m.Status.AtProvider.IPv4 = []string{}
 	for _, ip := range instance.IPv4 {
-		m.Status.IPv4 = append(m.Status.IPv4, ip.String())
+		m.Status.AtProvider.IPv4 = append(m.Status.AtProvider.IPv4, ip.String())
 	}
-	m.Status.IPv6 = instance.IPv6
+	m.Status.AtProvider.IPv6 = instance.IPv6
 
 	// Compare observed (GetInstance()) to desired (spec)
-	upToDate := m.Spec.Label == "" || instance.Label == m.Spec.Label
+	upToDate := m.Spec.ForProvider.Label == "" || instance.Label == m.Spec.ForProvider.Label
 	isOnOrOff := map[string]bool{
 		string(linodego.InstanceRunning): true,
 		string(linodego.InstanceOffline): true,
 	}
 
-	needsPowerToggle := (!isOnOrOff[string(instance.Status)] || m.Spec.Status != string(instance.Status))
+	needsPowerToggle := (!isOnOrOff[string(instance.Status)] || m.Spec.ForProvider.Status != string(instance.Status))
 	upToDate = upToDate && !needsPowerToggle
 
-	return resource.ExternalObservation{
+	return managed.ExternalObservation{
 		ResourceExists:   true,
 		ResourceUpToDate: upToDate,
 	}, nil
@@ -174,35 +175,35 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (resource.E
 // Create a new external resource based on the specification of our managed
 // resource. resource.ManagedReconciler only calls Create if Observe reported
 // that the external resource did not exist.
-func (e *external) Create(ctx context.Context, mg resource.Managed) (resource.ExternalCreation, error) {
+func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
 	m, ok := mg.(*linodev1alpha1.Instance)
 	if !ok {
-		return resource.ExternalCreation{}, errors.New(errNotInstance)
+		return managed.ExternalCreation{}, errors.New(errNotInstance)
 	}
 	controllerLog.Info("Create", "spec", m.Spec, "status", m.Status)
 
 	m.Status.SetConditions(runtimev1alpha1.Creating())
 
-	booted := m.Spec.Status == string(linodego.InstanceRunning)
+	booted := m.Spec.ForProvider.Status == string(linodego.InstanceRunning)
 	rootPass, _ := createRandomRootPassword()
 	instance, err := e.client.CreateInstance(ctx, linodego.InstanceCreateOptions{
-		Label:           m.Spec.Label,
-		Region:          m.Spec.Region,
-		Type:            m.Spec.Type,
-		AuthorizedUsers: m.Spec.AuthorizedUsers,
-		Image:           m.Spec.Image,
+		Label:           m.Spec.ForProvider.Label,
+		Region:          m.Spec.ForProvider.Region,
+		Type:            m.Spec.ForProvider.Type,
+		AuthorizedUsers: m.Spec.ForProvider.AuthorizedUsers,
+		Image:           m.Spec.ForProvider.Image,
 		Booted:          &booted,
 		RootPass:        rootPass,
 	})
 	if err != nil {
-		return resource.ExternalCreation{}, errors.Wrap(err, errInstanceCreate)
+		return managed.ExternalCreation{}, errors.Wrap(err, errInstanceCreate)
 	}
 	m.Status.SetConditions(runtimev1alpha1.Available())
 
-	m.Status.Id = instance.ID
+	m.Status.AtProvider.Id = instance.ID
 
-	return resource.ExternalCreation{
-		ConnectionDetails: resource.ConnectionDetails{
+	return managed.ExternalCreation{
+		ConnectionDetails: managed.ConnectionDetails{
 			"rootPass": []byte(rootPass),
 			"ipv6":     []byte(instance.IPv6),
 		},
@@ -212,27 +213,27 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (resource.Ex
 // Update the existing external resource to match the specifications of our
 // managed resource. resource.ManagedReconciler only calls Update if Observe
 // reported that the external resource was not up to date.
-func (e *external) Update(ctx context.Context, mg resource.Managed) (resource.ExternalUpdate, error) {
+func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
 	var err error
 	m, ok := mg.(*linodev1alpha1.Instance)
 	if !ok {
-		return resource.ExternalUpdate{}, errors.New(errNotInstance)
+		return managed.ExternalUpdate{}, errors.New(errNotInstance)
 	}
 
-	instance, errGetting := e.client.GetInstance(ctx, m.Status.Id)
+	instance, errGetting := e.client.GetInstance(ctx, m.Status.AtProvider.Id)
 	if errGetting != nil {
-		return resource.ExternalUpdate{}, err
+		return managed.ExternalUpdate{}, err
 	}
 
-	if m.Spec.Status == string(linodego.InstanceOffline) &&
+	if m.Spec.ForProvider.Status == string(linodego.InstanceOffline) &&
 		instance.Status == linodego.InstanceRunning {
-		err = e.client.ShutdownInstance(ctx, m.Status.Id)
+		err = e.client.ShutdownInstance(ctx, m.Status.AtProvider.Id)
 	} else if instance.Status == linodego.InstanceOffline {
-		err = e.client.BootInstance(ctx, m.Status.Id, 0)
+		err = e.client.BootInstance(ctx, m.Status.AtProvider.Id, 0)
 	}
 	controllerLog.Info("Update", "spec", m.Spec, "status", m.Status)
 
-	return resource.ExternalUpdate{}, err
+	return managed.ExternalUpdate{}, err
 }
 
 // Delete the external resource. resource.ManagedReconciler only calls Delete
@@ -245,7 +246,7 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	controllerLog.Info("Delete", "spec", m.Spec, "status", m.Status)
 
 	m.SetConditions(runtimev1alpha1.Deleting())
-	err := e.client.DeleteInstance(ctx, m.Status.Id)
+	err := e.client.DeleteInstance(ctx, m.Status.AtProvider.Id)
 
 	if err != nil {
 		if e, ok := err.(*linodego.Error); ok && e.Code == http.StatusNotFound {
