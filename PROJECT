@@ -1,6 +1,6 @@
 version: "2"
-domain: stack.crossplane.io
-repo: github.com/displague/stack-linode
+domain: linode.crossplane.io
+repo: github.com/displague/crossplane-provider-linode
 resources:
 - group: linode
   version: v1alpha1
