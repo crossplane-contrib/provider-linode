@@ -1,5 +1,8 @@
 # Crossplane Stack Development: Walk through with Linode
 
+### ⚠️ Deprecation notice ⚠️
+Please use Linode's actively maintained provider here: https://github.com/linode/provider-linode
+
 What is a [Crossplane Stack](https://crossplane.io/docs/v0.3/concepts.html#stacks)?  It's a way to add functionality to Crossplane.
 What is Crossplane? If you are asking that, you should probably read [Welcome to Crossplane!](https://crossplane.io/docs/v0.3/) first.
 
